@@ -35,6 +35,24 @@ const request = async (options, showLoading = true) => {
   return response
 }
 
+//带身份认证的请求
+const authRequest = async (options, showLoading = true) => {
+  if (typeof options === 'string') {
+    options = {
+      url: options
+    }
+  }
+  // 获取token
+  let accessToken = await getToken()
+
+  //将Token设置在header中
+  let header = options.header || {}
+  header.Authorization = 'Bearer ' + accessToken
+  options.header = header
+
+  return request(options, showLoading)
+}
+
 //登录
 const login = async (params = {}) => {
   //code 只能使用一次，所以每次单独调用
@@ -59,7 +77,57 @@ const login = async (params = {}) => {
   return authResponse
 }
 
+//刷新 Token
+const refreshToken = async (accessToken) => {
+  //请求刷新接口
+  let refreshResponse = await wepy.request({
+    url: host + '/' + 'authorizations/current',
+    method: 'PUT',
+    header: {
+      'Authorization': 'Bearer ' + accessToken
+    }
+  })
+
+  //刷新成功状态码为200
+  if (refreshResponse.statusCode === 200) {
+    // 将Token 及过期时间保存在storage中
+    wepy.setStorageSync('access_token', refreshResponse.data.access_token)
+    wepy.setStorageSync('access_token_expired_at', new Date().getTime() + refreshResponse.data.access_token_expired_in * 1000)
+  }
+
+  return refreshResponse
+}
+
+//获取Token
+const getToken = async (options) => {
+  //从缓存中取出token
+  let accessToken = wepy.getStorageSync('access_token');
+  let expiredAt = wepy.getStorageSync('access_token_expired_at')
+
+  //如果过期了，就调用刷新方法
+  if (accessToken && new Date().getTime() > expiredAt) {
+    let refreshResponse = await refreshToken(accessToken)
+
+    //刷新办法
+    if (refreshResponse.statusCode === 200) {
+      accessToken = refreshResponse.data.access_token
+    } else {
+      //刷新失败了，重新调用登录方法，设置Token
+      let authResponse = await login()
+      if (authResponse.data.statusCode === 201) {
+        accessToken = authResponse.data.access_token
+      }
+    }
+  }
+
+  return accessToken
+}
+
+
+
 export default {
   request,
-  login
+  login,
+  authRequest,
+  refreshToken
 }
