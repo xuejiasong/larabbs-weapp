@@ -68,13 +68,34 @@ const login = async (params = {}) => {
     method: 'POST'
   })
 
+
   //登录成功，记录token信息
   if(authResponse.statusCode === 201) {
     wepy.setStorageSync('access_token', authResponse.data.access_token)
-    wepy.setStorageSync('access_token_expired_at', new Date().getTime() + authResponse.data.access_token_expired_in * 1000)
+    wepy.setStorageSync('access_token_expired_at', new Date().getTime() + authResponse.data.expires_in * 1000)
   }
 
   return authResponse
+}
+
+//  退出登录
+const logout = async (params = {}) => {
+  let accessToken = wepy.getStorageSync('access_token')
+  // 调用删除 Token 接口，让 Token 失效
+  let logoutResponse = await wepy.request({
+    url: host + '/' + 'authorizations/current',
+    method: 'DELETE',
+    header: {
+      'Authorization': 'Bearer ' + accessToken
+    }
+  })
+
+  // 调用接口成功则清空缓存
+  if (logoutResponse.statusCode === 204) {
+    wepy.clearStorage()
+  }
+
+  return logoutResponse
 }
 
 //刷新 Token
@@ -92,7 +113,7 @@ const refreshToken = async (accessToken) => {
   if (refreshResponse.statusCode === 200) {
     // 将Token 及过期时间保存在storage中
     wepy.setStorageSync('access_token', refreshResponse.data.access_token)
-    wepy.setStorageSync('access_token_expired_at', new Date().getTime() + refreshResponse.data.access_token_expired_in * 1000)
+    wepy.setStorageSync('access_token_expired_at', new Date().getTime() + refreshResponse.data.expires_in * 1000)
   }
 
   return refreshResponse
@@ -129,5 +150,6 @@ export default {
   request,
   login,
   authRequest,
-  refreshToken
+  refreshToken,
+  logout
 }
