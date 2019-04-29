@@ -115,83 +115,82 @@ export default class Login extends wepy.page {
     this.errors = {}
   }
 
-   // 表单提交
-   async submit (e) {
+  // 表单提交
+  async submit (e) {
     this.errors = {}
-      // 检查验证码是否已发送
-      if (!this.verificationCode.key) {
-        wepy.showToast({
-          title: '请发送验证码',
-          icon: 'none',
-          duration: 2000
-        })
-        return false
-      }
-      // 检查验证码是否过期
-      if (new Date().getTime() > this.verificationCode.expiredAt) {
-        wepy.showToast({
-          title: '验证码已过期',
-          icon: 'none',
-          duration: 2000
-        })
-        this.resetRegister()
-        return false
-      }
-
-      try {
-        let formData = e.detail.value
-        formData.verification_key = this.verificationCode.key
-
-        let loginData = await wepy.login()
-        // 参数中增加code，用于获取 openid 绑定当前用户
-        formData.code = loginData.code
-
-        let registerResponse = await api.request({
-          url: 'weapp/users',
-          method: 'POST',
-          data: formData
-        })
-
-        // 验证码错误
-        if (registerResponse.statusCode === 401) {
-          this.errors.verification_code = ['验证码错误']
-          this.$apply()
-        }
-
-        // 表单错误
-        if (registerResponse.statusCode === 422) {
-          this.errors = registerResponse.data.errors
-          this.$apply()
-        }
-
-        // 注册成功，记录token
-        if (registerResponse.statusCode === 201) {
-          wepy.setStorageSync('access_token', registerResponse.data.meta.access_token)
-          wepy.setStorageSync('access_token_expired_at', new Date().getTime() + registerResponse.data.meta.expires_in * 1000)
-          // 设置用户信息
-          wepy.setStorageSync('user', registerResponse.data)
-
-          wepy.showToast({
-            title: '注册成功',
-            icon: 'success'
-          })
-
-          // 跳转到我的页面
-          setTimeout(function() {
-            wepy.switchTab({
-              url: '/pages/user'
-            })
-          }, 2000)
-        }
-      } catch (err) {
-        console.log(err)
-        wepy.showModal({
-          title: '提示',
-          content: '服务器错误，请联系管理员'
-        })
-      }
+    // 检查验证码是否已发送
+    if (!this.verificationCode.key) {
+      wepy.showToast({
+        title: '请发送验证码',
+        icon: 'none',
+        duration: 2000
+      })
+      return false
+    }
+    // 检查验证码是否过期
+    if (new Date().getTime() > this.verificationCode.expiredAt) {
+      wepy.showToast({
+        title: '验证码已过期',
+        icon: 'none',
+        duration: 2000
+      })
+      this.resetRegister()
+      return false
     }
 
+    try {
+      let formData = e.detail.value
+      formData.verification_key = this.verificationCode.key
+
+      let loginData = await wepy.login()
+      // 参数中增加code，用于获取 openid 绑定当前用户
+      formData.code = loginData.code
+
+      let registerResponse = await api.request({
+        url: 'weapp/users',
+        method: 'POST',
+        data: formData
+      })
+
+      // 验证码错误
+      if (registerResponse.statusCode === 401) {
+        this.errors.verification_code = ['验证码错误']
+        this.$apply()
+      }
+
+      // 表单错误
+      if (registerResponse.statusCode === 422) {
+        this.errors = registerResponse.data.errors
+        this.$apply()
+      }
+
+      // 注册成功，记录token
+      if (registerResponse.statusCode === 201) {
+        wepy.setStorageSync('access_token', registerResponse.data.meta.access_token)
+        wepy.setStorageSync('access_token_expired_at', new Date().getTime() + registerResponse.data.meta.expires_in * 1000)
+        // 设置用户信息
+        wepy.setStorageSync('user', registerResponse.data)
+
+        wepy.showToast({
+          title: '注册成功',
+          icon: 'success'
+        })
+
+        // 跳转到我的页面
+        setTimeout(function() {
+          wepy.switchTab({
+            url: '/pages/user'
+          })
+        }, 2000)
+      }
+    } catch (err) {
+      console.log(err)
+      wepy.showModal({
+        title: '提示',
+        content: '服务器错误，请联系管理员'
+      })
+    }
+  }
 
   // 获取图片验证码
   async getCaptchaCode() {
