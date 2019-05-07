@@ -69,7 +69,7 @@ export default class TopicShow extends wepy.page {
       let topic = topicResponse.data
 
       // 格式化updated_at
-      topic.updated_at_diff = util.diffFormHumans(topic.updated_at)
+      topic.updated_at_diff = util.diffForHumans(topic.updated_at)
 
       this.topic = topic
       this.$apply()
